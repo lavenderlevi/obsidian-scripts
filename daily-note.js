@@ -6,176 +6,188 @@ module.exports = async (params) => {
     // CONFIG
     // ============================================================
 
+    /*
+     * IMPORTANT:
+     *
+     * Daily Statistics is intentionally NOT included here.
+     *
+     * It will later be calculated automatically by Dataview /
+     * the task automation system.
+     *
+     * This script is ONLY responsible for filling the Daily Note.
+     */
+
     const GROUPS = [
-    {
-        title: "Today's Focus",
-        sections: [
-            {
-                id: "must-do",
-                heading: "### 1. Must do",
-                title: "Must do",
-                type: "checkbox",
-                placeholder: "One task per line..."
-            },
-            {
-                id: "should-do",
-                heading: "### 2. Should do",
-                title: "Should do",
-                type: "checkbox",
-                placeholder: "One task per line..."
-            },
-            {
-                id: "optional",
-                heading: "### 3. Optional",
-                title: "Optional",
-                type: "checkbox",
-                placeholder: "One task per line..."
-            }
-        ]
-    },
+        {
+            title: "Today's Focus",
+            sections: [
+                {
+                    id: "must-do",
+                    heading: "### 1. Must do",
+                    title: "Must do",
+                    type: "checkbox",
+                    placeholder: "One task per line..."
+                },
+                {
+                    id: "should-do",
+                    heading: "### 2. Should do",
+                    title: "Should do",
+                    type: "checkbox",
+                    placeholder: "One task per line..."
+                },
+                {
+                    id: "optional",
+                    heading: "### 3. Optional",
+                    title: "Optional",
+                    type: "checkbox",
+                    placeholder: "One task per line..."
+                }
+            ]
+        },
 
-    {
-        title: "Study Log",
-        sections: [
-            {
-                id: "physics",
-                heading: "### Physics",
-                title: "Physics",
-                type: "bullet",
-                placeholder: "What did you study in Physics today?"
-            },
-            {
-                id: "mathematics",
-                heading: "### Mathematics",
-                title: "Mathematics",
-                type: "bullet",
-                placeholder: "What did you study in Mathematics today?"
-            },
-            {
-                id: "materials-science",
-                heading: "### Materials Science",
-                title: "Materials Science",
-                type: "bullet",
-                placeholder: "What did you study in Materials Science today?"
-            },
-            {
-                id: "semiconductor",
-                heading: "### Semiconductor",
-                title: "Semiconductor",
-                type: "bullet",
-                placeholder: "What did you study in Semiconductor today?"
-            },
-            {
-                id: "programming-ml",
-                heading: "### Programming / ML",
-                title: "Programming / ML",
-                type: "bullet",
-                placeholder: "What did you study in Programming / ML today?"
-            }
-        ]
-    },
+        {
+            title: "Study Log",
+            sections: [
+                {
+                    id: "physics",
+                    heading: "### Physics",
+                    title: "Physics",
+                    type: "bullet",
+                    placeholder: "What did you study in Physics today?"
+                },
+                {
+                    id: "mathematics",
+                    heading: "### Mathematics",
+                    title: "Mathematics",
+                    type: "bullet",
+                    placeholder: "What did you study in Mathematics today?"
+                },
+                {
+                    id: "materials-science",
+                    heading: "### Materials Science",
+                    title: "Materials Science",
+                    type: "bullet",
+                    placeholder: "What did you study in Materials Science today?"
+                },
+                {
+                    id: "semiconductor",
+                    heading: "### Semiconductor",
+                    title: "Semiconductor",
+                    type: "bullet",
+                    placeholder: "What did you study in Semiconductor today?"
+                },
+                {
+                    id: "programming-ml",
+                    heading: "### Programming / ML",
+                    title: "Programming / ML",
+                    type: "bullet",
+                    placeholder: "What did you study in Programming / ML today?"
+                }
+            ]
+        },
 
-    {
-        title: "Active Recall",
-        sections: [
-            {
-                id: "active-recall",
-                heading: "## Active Recall",
-                title: "Without looking at your notes, what did you learn today?",
-                type: "numbered",
-                maxLines: 3,
-                placeholder: "Maximum 3 items. One item per line."
-            }
-        ]
-    },
+        {
+            title: "Active Recall",
+            sections: [
+                {
+                    id: "active-recall",
+                    heading: "## Active Recall",
+                    title: "Without looking at your notes, what did you learn today?",
+                    type: "numbered",
+                    maxLines: 3,
+                    placeholder: "Maximum 3 items. One item per line."
+                }
+            ]
+        },
 
-    {
-        title: "Reflection",
-        sections: [
-            {
-                id: "problems",
-                heading: "## Problems I Couldn't Solve",
-                title: "Problems I Couldn't Solve",
-                type: "bullet",
-                placeholder: "One problem per line..."
-            },
-            {
-                id: "understood",
-                heading: "## What I Actually Understood",
-                title: "Explain one difficult concept from today in your own words.",
-                type: "quote",
-                placeholder: "You can write multiple lines..."
-            },
-            {
-                id: "questions",
-                heading: "## New Questions",
-                title: "New Questions",
-                type: "checkbox",
-                placeholder: "One question per line..."
-            }
-        ]
-    },
+        {
+            title: "Reflection",
+            sections: [
+                {
+                    id: "problems",
+                    heading: "## Problems I Couldn't Solve",
+                    title: "Problems I Couldn't Solve",
+                    type: "bullet",
+                    placeholder: "One problem per line..."
+                },
+                {
+                    id: "understood",
+                    heading: "## What I Actually Understood",
+                    title: "Explain one difficult concept from today in your own words.",
+                    type: "quote",
+                    placeholder: "You can write multiple lines..."
+                },
+                {
+                    id: "questions",
+                    heading: "## New Questions",
+                    title: "New Questions",
+                    type: "bullet",
+                    placeholder: "One question per line..."
+                }
+            ]
+        },
 
-    {
-        title: "Project / Research",
-        sections: [
-            {
-                id: "project",
-                heading: "## Project / Research Progress",
-                title: "Project / Research Progress",
-                type: "bullet",
-                placeholder: "One item per line..."
-            }
-        ]
-    },
+        {
+            title: "Project / Research",
+            sections: [
+                {
+                    id: "project",
+                    heading: "## Project / Research Progress",
+                    title: "Project / Research Progress",
+                    type: "bullet",
+                    placeholder: "One item per line..."
+                }
+            ]
+        },
 
-    {
-        title: "End-of-Day Review",
-        sections: [
-            {
-                id: "went-well",
-                heading: "### What went well?",
-                title: "What went well?",
-                type: "bullet",
-                placeholder: "One item per line..."
-            },
-            {
-                id: "went-wrong",
-                heading: "### What went wrong?",
-                title: "What went wrong?",
-                type: "bullet",
-                placeholder: "One item per line..."
-            },
-            {
-                id: "change-tomorrow",
-                heading: "### What should I change tomorrow?",
-                title: "What should I change tomorrow?",
-                type: "bullet",
-                placeholder: "One item per line..."
-            },
-            {
-                id: "important-learned",
-                heading: "### Most important thing I learned",
-                title: "Most important thing I learned",
-                type: "bullet",
-                placeholder: "Write the most important thing you learned..."
-            }
-        ]
-    },
+        {
+            title: "End-of-Day Review",
+            sections: [
+                {
+                    id: "went-well",
+                    heading: "### What went well?",
+                    title: "What went well?",
+                    type: "bullet",
+                    placeholder: "One item per line..."
+                },
+                {
+                    id: "went-wrong",
+                    heading: "### What went wrong?",
+                    title: "What went wrong?",
+                    type: "bullet",
+                    placeholder: "One item per line..."
+                },
+                {
+                    id: "change-tomorrow",
+                    heading: "### What should I change tomorrow?",
+                    title: "What should I change tomorrow?",
+                    type: "bullet",
+                    placeholder: "One item per line..."
+                },
+                {
+                    id: "important-learned",
+                    heading: "### Most important thing I learned",
+                    title: "Most important thing I learned",
+                    type: "bullet",
+                    placeholder: "Write the most important thing you learned..."
+                }
+            ]
+        },
 
-    {
-        title: "Tomorrow",
-        sections: [
-            {
-                id: "tomorrow",
-                heading: "## Tomorrow",
-                title: "Tomorrow",
-                type: "checkbox",
-                placeholder: "One task per line..."
-            }
-        ]
-    }
-];
+        {
+            title: "Tomorrow",
+            sections: [
+                {
+                    id: "tomorrow",
+                    heading: "## Tomorrow",
+                    title: "Tomorrow",
+                    type: "checkbox",
+                    placeholder: "One task per line..."
+                }
+            ]
+        }
+    ];
+
     const sections = [];
 
     for (const group of GROUPS) {
@@ -196,7 +208,9 @@ module.exports = async (params) => {
     }
 
     if (file.extension !== "md") {
-        new obsidian.Notice("The active file is not a Markdown note.");
+        new obsidian.Notice(
+            "The active file is not a Markdown note."
+        );
         return;
     }
 
@@ -204,16 +218,24 @@ module.exports = async (params) => {
     // READ NOTE
     // ============================================================
 
-    const originalContent = await app.vault.read(file);
+    const originalContent =
+        await app.vault.read(file);
 
     // ============================================================
     // CHECK HEADINGS
     // ============================================================
 
     for (const section of sections) {
-        if (!hasHeading(originalContent, section.heading)) {
+
+        if (
+            !hasHeading(
+                originalContent,
+                section.heading
+            )
+        ) {
             new obsidian.Notice(
-                "Missing heading: " + section.heading
+                "Missing heading: " +
+                section.heading
             );
             return;
         }
@@ -226,32 +248,40 @@ module.exports = async (params) => {
     const values = {};
 
     for (const section of sections) {
-        const body = getSectionBody(
-            originalContent,
-            section.heading
-        );
 
-        values[section.id] = extractContent(
-            body,
-            section.type
-        );
+        const body =
+            getSectionBody(
+                originalContent,
+                section.heading
+            );
+
+        values[section.id] =
+            extractContent(
+                body,
+                section.type
+            );
     }
 
     // ============================================================
     // OPEN MODAL
     // ============================================================
 
-    const result = await openModal(
-        app,
-        obsidian,
-        file,
-        GROUPS,
-        sections,
-        values
-    );
+    const result =
+        await openModal(
+            app,
+            obsidian,
+            file,
+            GROUPS,
+            sections,
+            values
+        );
 
     if (result === null) {
-        new obsidian.Notice("Cancelled.");
+
+        new obsidian.Notice(
+            "Cancelled."
+        );
+
         return;
     }
 
@@ -259,34 +289,49 @@ module.exports = async (params) => {
     // UPDATE NOTE
     // ============================================================
 
-    let newContent = originalContent;
+    let newContent =
+        originalContent;
 
     for (const section of sections) {
 
-    const value = result[section.id] || "";
+        const value =
+            result[section.id] || "";
 
-    const formatted = formatContent(
-        value,
-        section.type,
-        section.maxLines
-    );
+        const formatted =
+            formatContent(
+                value,
+                section.type,
+                section.maxLines
+            );
 
-    newContent = replaceSection(
-        newContent,
-        section.heading,
-        formatted
-    );
-}
+        newContent =
+            replaceSection(
+                newContent,
+                section.heading,
+                formatted
+            );
+    }
+
     // ============================================================
     // SAVE
     // ============================================================
 
-    if (newContent === originalContent) {
-        new obsidian.Notice("No changes made.");
+    if (
+        newContent ===
+        originalContent
+    ) {
+
+        new obsidian.Notice(
+            "No changes made."
+        );
+
         return;
     }
 
-    await app.vault.modify(file, newContent);
+    await app.vault.modify(
+        file,
+        newContent
+    );
 
     new obsidian.Notice(
         "Daily Note updated successfully."
@@ -306,19 +351,24 @@ function openModal(
     sections,
     values
 ) {
+
     return new Promise((resolve) => {
 
-        class DailyModal extends obsidian.Modal {
+        class DailyModal
+            extends obsidian.Modal {
 
             constructor(app) {
+
                 super(app);
+
                 this.result = null;
                 this.fields = {};
             }
 
             onOpen() {
 
-                const container = this.contentEl;
+                const container =
+                    this.contentEl;
 
                 container.empty();
 
@@ -326,9 +376,13 @@ function openModal(
                 // CSS
                 // =================================================
 
-                const style = document.createElement("style");
+                const style =
+                    document.createElement(
+                        "style"
+                    );
 
                 style.textContent = `
+
                     .daily-editor {
                         width: 850px;
                         max-width: 90vw;
@@ -343,7 +397,8 @@ function openModal(
                     .daily-editor-header {
                         flex-shrink: 0;
                         padding-bottom: 12px;
-                        border-bottom: 1px solid var(--background-modifier-border);
+                        border-bottom: 1px solid
+                            var(--background-modifier-border);
                     }
 
                     .daily-editor-title {
@@ -372,7 +427,8 @@ function openModal(
                         font-weight: 700;
                         margin: 0 0 14px 0;
                         padding-bottom: 7px;
-                        border-bottom: 1px solid var(--background-modifier-border);
+                        border-bottom: 1px solid
+                            var(--background-modifier-border);
                     }
 
                     .daily-editor-field {
@@ -393,7 +449,8 @@ function openModal(
                         resize: vertical;
                         padding: 10px 12px;
                         border-radius: 7px;
-                        border: 1px solid var(--background-modifier-border);
+                        border: 1px solid
+                            var(--background-modifier-border);
                         background: var(--background-primary);
                         color: var(--text-normal);
                         font-family: var(--font-text);
@@ -403,7 +460,8 @@ function openModal(
 
                     .daily-editor-textarea:focus {
                         outline: none;
-                        border-color: var(--interactive-accent);
+                        border-color:
+                            var(--interactive-accent);
                     }
 
                     .daily-editor-description {
@@ -417,7 +475,8 @@ function openModal(
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
-                        border-top: 1px solid var(--background-modifier-border);
+                        border-top: 1px solid
+                            var(--background-modifier-border);
                         padding-top: 12px;
                     }
 
@@ -432,7 +491,9 @@ function openModal(
                     }
                 `;
 
-                container.appendChild(style);
+                container.appendChild(
+                    style
+                );
 
                 // =================================================
                 // MODAL
@@ -442,29 +503,41 @@ function openModal(
                     "daily-editor"
                 );
 
-                const wrapper = container.createDiv({
-                    cls: "daily-editor-wrapper"
-                });
+                const wrapper =
+                    container.createDiv({
+                        cls:
+                            "daily-editor-wrapper"
+                    });
 
                 // =================================================
                 // HEADER
                 // =================================================
 
-                const header = wrapper.createDiv({
-                    cls: "daily-editor-header"
-                });
+                const header =
+                    wrapper.createDiv({
+                        cls:
+                            "daily-editor-header"
+                    });
 
-                const title = header.createEl("h2", {
-                    cls: "daily-editor-title"
-                });
+                const title =
+                    header.createEl(
+                        "h2",
+                        {
+                            cls:
+                                "daily-editor-title"
+                        }
+                    );
 
                 title.setText(
-                    "Daily Note - " + getDate(file)
+                    "Daily Note - " +
+                    getDate(file)
                 );
 
-                const subtitle = header.createDiv({
-                    cls: "daily-editor-subtitle"
-                });
+                const subtitle =
+                    header.createDiv({
+                        cls:
+                            "daily-editor-subtitle"
+                    });
 
                 subtitle.setText(
                     "Fill in your study log, reflection, and plan."
@@ -474,36 +547,51 @@ function openModal(
                 // SCROLL AREA
                 // =================================================
 
-                const scroll = wrapper.createDiv({
-                    cls: "daily-editor-scroll"
-                });
+                const scroll =
+                    wrapper.createDiv({
+                        cls:
+                            "daily-editor-scroll"
+                    });
 
                 // =================================================
                 // GROUPS
                 // =================================================
 
-                for (const group of groups) {
+                for (
+                    const group of groups
+                ) {
 
-                    const groupElement = scroll.createDiv({
-                        cls: "daily-editor-group"
-                    });
+                    const groupElement =
+                        scroll.createDiv({
+                            cls:
+                                "daily-editor-group"
+                        });
 
                     const groupTitle =
-                        groupElement.createEl("h3", {
-                            cls: "daily-editor-group-title"
-                        });
+                        groupElement.createEl(
+                            "h3",
+                            {
+                                cls:
+                                    "daily-editor-group-title"
+                            }
+                        );
 
                     groupTitle.setText(
                         group.title
                     );
 
-                    for (const section of group.sections) {
+                    for (
+                        const section
+                        of group.sections
+                    ) {
 
                         createField(
                             this,
                             groupElement,
                             section,
-                            values[section.id] || ""
+                            values[
+                                section.id
+                            ] || ""
                         );
                     }
                 }
@@ -512,30 +600,47 @@ function openModal(
                 // FOOTER
                 // =================================================
 
-                const footer = wrapper.createDiv({
-                    cls: "daily-editor-footer"
-                });
+                const footer =
+                    wrapper.createDiv({
+                        cls:
+                            "daily-editor-footer"
+                    });
 
-                const help = footer.createDiv({
-                    cls: "daily-editor-help"
-                });
+                const help =
+                    footer.createDiv({
+                        cls:
+                            "daily-editor-help"
+                    });
 
                 help.setText(
                     "Ctrl + Enter = Save | Esc = Cancel"
                 );
 
-                const buttons = footer.createDiv({
-                    cls: "daily-editor-buttons"
-                });
+                const buttons =
+                    footer.createDiv({
+                        cls:
+                            "daily-editor-buttons"
+                    });
 
-                const cancel = buttons.createEl("button", {
-                    text: "Cancel"
-                });
+                const cancel =
+                    buttons.createEl(
+                        "button",
+                        {
+                            text:
+                                "Cancel"
+                        }
+                    );
 
-                const save = buttons.createEl("button", {
-                    text: "Save",
-                    cls: "mod-cta"
-                });
+                const save =
+                    buttons.createEl(
+                        "button",
+                        {
+                            text:
+                                "Save",
+                            cls:
+                                "mod-cta"
+                        }
+                    );
 
                 // =================================================
                 // EVENTS
@@ -544,7 +649,10 @@ function openModal(
                 cancel.addEventListener(
                     "click",
                     () => {
-                        this.result = null;
+
+                        this.result =
+                            null;
+
                         this.close();
                     }
                 );
@@ -552,6 +660,7 @@ function openModal(
                 save.addEventListener(
                     "click",
                     () => {
+
                         this.save();
                     }
                 );
@@ -560,18 +669,29 @@ function openModal(
                     "keydown",
                     (event) => {
 
-                        if (event.key === "Escape") {
+                        if (
+                            event.key ===
+                            "Escape"
+                        ) {
+
                             event.preventDefault();
-                            this.result = null;
+
+                            this.result =
+                                null;
+
                             this.close();
+
                             return;
                         }
 
                         if (
-                            event.key === "Enter" &&
+                            event.key ===
+                                "Enter" &&
                             event.ctrlKey
                         ) {
+
                             event.preventDefault();
+
                             this.save();
                         }
                     }
@@ -581,7 +701,9 @@ function openModal(
                 // FOCUS
                 // =================================================
 
-                if (sections.length > 0) {
+                if (
+                    sections.length > 0
+                ) {
 
                     const first =
                         this.fields[
@@ -589,38 +711,60 @@ function openModal(
                         ];
 
                     if (first) {
-                        setTimeout(() => {
-                            first.focus();
-                        }, 100);
+
+                        setTimeout(
+                            () => {
+                                first.focus();
+                            },
+                            100
+                        );
                     }
                 }
             }
+
+            // =====================================================
+            // SAVE MODAL
+            // =====================================================
 
             save() {
 
                 const result = {};
 
-                for (const section of sections) {
+                for (
+                    const section
+                    of sections
+                ) {
 
                     const field =
                         this.fields[
                             section.id
                         ];
 
-                    result[section.id] =
-                        field ? field.value : "";
+                    result[
+                        section.id
+                    ] =
+                        field
+                            ? field.value
+                            : "";
                 }
 
-                this.result = result;
+                this.result =
+                    result;
 
                 this.close();
             }
+
+            // =====================================================
+            // CLOSE
+            // =====================================================
 
             onClose() {
 
                 this.contentEl.empty();
 
-                resolve(this.result);
+                resolve(
+                    this.result
+                );
             }
         }
 
@@ -635,67 +779,109 @@ function openModal(
             value
         ) {
 
-            const field = parent.createDiv({
-                cls: "daily-editor-field"
-            });
+            const field =
+                parent.createDiv({
+                    cls:
+                        "daily-editor-field"
+                });
 
-            const label = field.createEl("label", {
-                cls: "daily-editor-label"
-            });
+            const label =
+                field.createEl(
+                    "label",
+                    {
+                        cls:
+                            "daily-editor-label"
+                    }
+                );
 
             label.setText(
                 section.title
             );
 
-            const textarea = field.createEl("textarea", {
-                cls: "daily-editor-textarea"
-            });
+            const textarea =
+                field.createEl(
+                    "textarea",
+                    {
+                        cls:
+                            "daily-editor-textarea"
+                    }
+                );
 
-            textarea.value = value;
+            textarea.value =
+                value;
+
             textarea.placeholder =
                 section.placeholder;
 
             // Bigger field for long explanation
-            if (section.type === "quote") {
-                textarea.style.minHeight = "150px";
+            if (
+                section.type ===
+                "quote"
+            ) {
+
+                textarea.style.minHeight =
+                    "150px";
             }
 
             // Active Recall
-            if (section.type === "numbered") {
-                textarea.style.minHeight = "110px";
+            if (
+                section.type ===
+                "numbered"
+            ) {
+
+                textarea.style.minHeight =
+                    "110px";
             }
 
             const description =
                 field.createDiv({
-                    cls: "daily-editor-description"
+                    cls:
+                        "daily-editor-description"
                 });
 
-            if (section.type === "checkbox") {
+            if (
+                section.type ===
+                "checkbox"
+            ) {
+
                 description.setText(
-                    "One task per line - saved as - [ ]"
+                    "One task per line - [ ] or [x] supported"
                 );
             }
 
-            if (section.type === "bullet") {
+            if (
+                section.type ===
+                "bullet"
+            ) {
+
                 description.setText(
                     "One item per line - saved as -"
                 );
             }
 
-            if (section.type === "numbered") {
+            if (
+                section.type ===
+                "numbered"
+            ) {
+
                 description.setText(
                     "Maximum 3 items - numbering is automatic"
                 );
             }
 
-            if (section.type === "quote") {
+            if (
+                section.type ===
+                "quote"
+            ) {
+
                 description.setText(
                     "Multiple lines supported - saved as >"
                 );
             }
 
-            modal.fields[section.id] =
-                textarea;
+            modal.fields[
+                section.id
+            ] = textarea;
         }
 
         const modal =
@@ -707,8 +893,9 @@ function openModal(
 
 
 // =================================================================
-// GET DATE
+// CLEAN INPUT
 // =================================================================
+
 function cleanForInput(text) {
 
     if (!text) {
@@ -717,46 +904,72 @@ function cleanForInput(text) {
 
     return text
         .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(line => {
+        .map(
+            line => line.trim()
+        )
+        .filter(
+            line => {
 
-            // Empty line
-            if (!line) {
-                return false;
+                // Empty line
+                if (!line) {
+                    return false;
+                }
+
+                // Markdown separators / empty bullets
+                // -, --, ---, *, **, ___
+                if (
+                    /^[-*_]+$/.test(
+                        line
+                    )
+                ) {
+                    return false;
+                }
+
+                // Empty checkbox
+                //
+                // - [ ]
+                // - [x]
+                // - [X]
+                //
+                // NOTE:
+                // A checkbox containing actual text is NOT removed.
+                if (
+                    /^[-*]\s*\[\s*[xX]?\s*\]\s*$/.test(
+                        line
+                    )
+                ) {
+                    return false;
+                }
+
+                // Empty numbered list
+                if (
+                    /^\d+\.\s*$/.test(
+                        line
+                    )
+                ) {
+                    return false;
+                }
+
+                // Empty quote
+                if (
+                    /^>\s*$/.test(
+                        line
+                    )
+                ) {
+                    return false;
+                }
+
+                return true;
             }
-
-            // Markdown separators / empty bullets
-            // -, --, ---, *, **, ___
-            if (/^[-*_]+$/.test(line)) {
-                return false;
-            }
-
-            // Empty checkbox
-            // - [ ]
-            // - [x]
-            // - [X]
-            if (/^[-*]\s*\[\s*[xX]?\s*\]\s*$/.test(line)) {
-                return false;
-            }
-
-            // Empty numbered list
-            // 1.
-            // 2.
-            // 3.
-            if (/^\d+\.\s*$/.test(line)) {
-                return false;
-            }
-
-            // Empty quote
-            // >
-            if (/^>\s*$/.test(line)) {
-                return false;
-            }
-
-            return true;
-        })
+        )
         .join("\n");
 }
+
+
+// =================================================================
+// GET DATE
+// =================================================================
+
 function getDate(file) {
 
     if (
@@ -764,12 +977,16 @@ function getDate(file) {
             file.basename
         )
     ) {
+
         return file.basename;
     }
 
-    const now = new Date();
+    const now =
+        new Date();
 
-    return now.toISOString().slice(0, 10);
+    return now
+        .toISOString()
+        .slice(0, 10);
 }
 
 
@@ -786,7 +1003,7 @@ function hasHeading(
         content.split(/\r?\n/);
 
     return lines.some(
-        (line) =>
+        line =>
             line.trim() ===
             heading.trim()
     );
@@ -807,12 +1024,15 @@ function getSectionBody(
 
     const start =
         lines.findIndex(
-            (line) =>
+            line =>
                 line.trim() ===
                 heading.trim()
         );
 
-    if (start === -1) {
+    if (
+        start === -1
+    ) {
+
         return "";
     }
 
@@ -830,13 +1050,18 @@ function getSectionBody(
                 lines[i]
             )
         ) {
+
             end = i;
+
             break;
         }
     }
 
     return lines
-        .slice(start + 1, end)
+        .slice(
+            start + 1,
+            end
+        )
         .join("\n");
 }
 
@@ -856,12 +1081,15 @@ function replaceSection(
 
     const start =
         lines.findIndex(
-            (line) =>
+            line =>
                 line.trim() ===
                 heading.trim()
         );
 
-    if (start === -1) {
+    if (
+        start === -1
+    ) {
+
         return content;
     }
 
@@ -879,16 +1107,39 @@ function replaceSection(
                 lines[i]
             )
         ) {
+
             end = i;
+
             break;
         }
     }
 
     const before =
-        lines.slice(0, start + 1);
+        lines.slice(
+            0,
+            start + 1
+        );
 
     const after =
         lines.slice(end);
+
+    /*
+     * If the user cleared the field,
+     * preserve the section as an empty section
+     * instead of inserting "undefined".
+     */
+
+    if (
+        !newBody ||
+        !newBody.trim()
+    ) {
+
+        return [
+            ...before,
+            "",
+            ...after
+        ].join("\n");
+    }
 
     const bodyLines =
         newBody
@@ -919,16 +1170,40 @@ function formatContent(
         input
             .split(/\r?\n/)
             .map(
-                (line) => line.trim()
+                line =>
+                    line.trim()
             )
             .filter(
-                (line) => line.length > 0
+                line =>
+                    line.length > 0
             );
+
+    /*
+     * Remove placeholder-only lines.
+     *
+     * This is especially important for:
+     *
+     * Optional
+     * New Questions
+     * Tomorrow
+     *
+     * because the template contains "-"
+     * or "- [ ]" placeholders.
+     */
+
+    lines =
+        lines.filter(
+            line =>
+                !isEmptyPlaceholder(
+                    line
+                )
+        );
 
     if (
         maxLines &&
         lines.length > maxLines
     ) {
+
         lines =
             lines.slice(
                 0,
@@ -936,51 +1211,96 @@ function formatContent(
             );
     }
 
-    if (type === "checkbox") {
+    // =============================================================
+    // CHECKBOX
+    // =============================================================
 
-        return lines
-            .map((line) => {
-
-                const clean =
-                    line
-                        .replace(
-                            /^[-*]\s*\[[ xX]\]\s*/,
-                            ""
-                        )
-                        .replace(
-                            /^[-*]\s*/,
-                            ""
-                        )
-                        .trim();
-
-                return "- [ ] " + clean;
-            })
-            .join("\n");
-    }
-
-    if (type === "bullet") {
-
-        return lines
-            .map((line) => {
-
-                const clean =
-                    line
-                        .replace(
-                            /^[-*]\s*/,
-                            ""
-                        )
-                        .trim();
-
-                return "- " + clean;
-            })
-            .join("\n");
-    }
-
-    if (type === "numbered") {
+    if (
+        type === "checkbox"
+    ) {
 
         return lines
             .map(
-                (line, index) => {
+                line => {
+
+                    const match =
+                        line.match(
+                            /^[-*]\s*\[([ xX])\]\s*(.*)$/
+                        );
+
+                    if (match) {
+
+                        const state =
+                            match[1];
+
+                        const content =
+                            match[2].trim();
+
+                        return (
+                            "- [" +
+                            state +
+                            "] " +
+                            content
+                        );
+                    }
+
+                    /*
+                     * User entered a normal task without
+                     * checkbox syntax.
+                     *
+                     * Default state = unchecked.
+                     */
+
+                    const clean =
+                        line
+                            .replace(
+                                /^[-*]\s*/,
+                                ""
+                            )
+                            .trim();
+
+                    return (
+                        "- [ ] " +
+                        clean
+                    );
+                }
+            )
+            .join("\n");
+    }
+
+    // =============================================================
+    // BULLET
+    // =============================================================
+
+    if (type === "bullet") {
+
+    return lines
+        .map(line => {
+
+            const clean = line
+                .replace(/^[-*]\s*/, "")
+                .replace(/^\[\s*[xX]?\s*\]\s*/, "")
+                .trim();
+
+            return "- " + clean;
+        })
+        .join("\n");
+}
+
+    // =============================================================
+    // NUMBERED
+    // =============================================================
+
+    if (
+        type === "numbered"
+    ) {
+
+        return lines
+            .map(
+                (
+                    line,
+                    index
+                ) => {
 
                     const clean =
                         line
@@ -1000,21 +1320,32 @@ function formatContent(
             .join("\n");
     }
 
-    if (type === "quote") {
+    // =============================================================
+    // QUOTE
+    // =============================================================
+
+    if (
+        type === "quote"
+    ) {
 
         return lines
-            .map((line) => {
+            .map(
+                line => {
 
-                const clean =
-                    line
-                        .replace(
-                            /^>\s*/,
-                            ""
-                        )
-                        .trim();
+                    const clean =
+                        line
+                            .replace(
+                                /^>\s*/,
+                                ""
+                            )
+                            .trim();
 
-                return "> " + clean;
-            })
+                    return (
+                        "> " +
+                        clean
+                    );
+                }
+            )
             .join("\n");
     }
 
@@ -1026,133 +1357,267 @@ function formatContent(
 // EXTRACT EXISTING CONTENT
 // =================================================================
 
-function extractContent(body, type) {
+function extractContent(
+    body,
+    type
+) {
 
     if (!body) {
         return "";
     }
 
-    const lines = body
-        .split(/\r?\n/)
-        .map(line => line.trim());
+    const lines =
+        body
+            .split(/\r?\n/)
+            .map(
+                line =>
+                    line.trim()
+            );
 
     const result = [];
 
-    for (let line of lines) {
-
-        // ========================================================
-        // Remove empty lines
-        // ========================================================
+    for (
+        let line of lines
+    ) {
 
         if (!line) {
             continue;
         }
 
-        // ========================================================
+        // =========================================================
         // CHECKBOX
-        // ========================================================
+        // =========================================================
 
-        if (type === "checkbox") {
+        if (
+            type === "checkbox"
+        ) {
 
-            // Remove checkbox syntax
-            line = line.replace(
-                /^-\s*\[[ xX]\]\s*/,
-                ""
-            );
+            const checkboxMatch =
+                line.match(
+                    /^[-*]\s*\[([ xX])\]\s*(.*)$/
+                );
 
-            // Remove normal bullet
-            line = line.replace(
-                /^[-*]\s*/,
-                ""
-            );
+            if (
+                checkboxMatch
+            ) {
 
-            line = line.trim();
+                const state =
+                    checkboxMatch[1];
 
-            // Ignore empty placeholder
+                const content =
+                    checkboxMatch[2].trim();
+
+                /*
+                 * Empty checkbox placeholder:
+                 *
+                 * - [ ]
+                 *
+                 * should NOT appear in the modal.
+                 */
+
+                if (!content) {
+                    continue;
+                }
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Preserve:
+                 *
+                 * [ ]
+                 * [x]
+                 * carried-over:: true
+                 *
+                 * exactly as task content.
+                 */
+
+                result.push(
+                    "- [" +
+                    state +
+                    "] " +
+                    content
+                );
+
+                continue;
+            }
+
+            /*
+             * Support a normal bullet / plain text
+             * inside a checkbox section.
+             */
+
+            line =
+                line.replace(
+                    /^[-*]\s*/,
+                    ""
+                ).trim();
+
             if (!line) {
                 continue;
             }
 
-            result.push(line);
+            result.push(
+                line
+            );
 
             continue;
         }
 
-        // ========================================================
+        // =========================================================
         // BULLET
-        // ========================================================
+        // =========================================================
 
         if (type === "bullet") {
 
-            line = line.replace(
-                /^[-*]\s*/,
-                ""
-            );
+    line = line
+        .replace(/^[-*]\s*/, "")
+        .replace(/^\[\s*[xX]?\s*\]\s*/, "")
+        .trim();
 
-            line = line.trim();
-
-            // Ignore "-" placeholder
-            if (!line) {
-                continue;
-            }
-
-            result.push(line);
-
-            continue;
-        }
-
-        // ========================================================
-        // NUMBERED
-        // ========================================================
-
-        if (type === "numbered") {
-
-            line = line.replace(
-                /^\d+\.\s*/,
-                ""
-            );
-
-            line = line.trim();
-
-            // Ignore "1.", "2.", "3." placeholders
-            if (!line) {
-                continue;
-            }
-
-            result.push(line);
-
-            continue;
-        }
-
-        // ========================================================
-        // QUOTE
-        // ========================================================
-
-        if (type === "quote") {
-
-            line = line.replace(
-                /^>\s*/,
-                ""
-            );
-
-            line = line.trim();
-
-            // Ignore ">" placeholder
-            if (!line) {
-                continue;
-            }
-
-            result.push(line);
-
-            continue;
-        }
-
-        // ========================================================
-        // DEFAULT
-        // ========================================================
-
-        result.push(line);
+    if (!line) {
+        continue;
     }
 
-    return cleanForInput(result.join("\n"));
+    result.push(line);
+
+    continue;
+}
+
+        // =========================================================
+        // NUMBERED
+        // =========================================================
+
+        if (
+            type === "numbered"
+        ) {
+
+            line =
+                line.replace(
+                    /^\d+\.\s*/,
+                    ""
+                ).trim();
+
+            if (!line) {
+                continue;
+            }
+
+            result.push(
+                line
+            );
+
+            continue;
+        }
+
+        // =========================================================
+        // QUOTE
+        // =========================================================
+
+        if (
+            type === "quote"
+        ) {
+
+            line =
+                line.replace(
+                    /^>\s*/,
+                    ""
+                ).trim();
+
+            if (!line) {
+                continue;
+            }
+
+            result.push(
+                line
+            );
+
+            continue;
+        }
+
+        // =========================================================
+        // DEFAULT
+        // =========================================================
+
+        result.push(
+            line
+        );
+    }
+
+    return cleanForInput(
+        result.join("\n")
+    );
+}
+
+
+// =================================================================
+// PLACEHOLDER DETECTION
+// =================================================================
+
+function isEmptyPlaceholder(
+    line
+) {
+
+    const value =
+        line.trim();
+
+    // Empty
+    if (!value) {
+        return true;
+    }
+
+    // Markdown separators
+    //
+    // -
+    // --
+    // ---
+    // *
+    // **
+    // ___
+    if (
+        /^[-*_]+$/.test(
+            value
+        )
+    ) {
+
+        return true;
+    }
+
+    // Empty checkbox
+    //
+    // - [ ]
+    // - [x]
+    // - [X]
+    if (
+        /^[-*]\s*\[\s*[xX]?\s*\]\s*$/.test(
+            value
+        )
+    ) {
+
+        return true;
+    }
+
+    // Empty numbered item
+    //
+    // 1.
+    // 2.
+    // 3.
+    if (
+        /^\d+\.\s*$/.test(
+            value
+        )
+    ) {
+
+        return true;
+    }
+
+    // Empty quote
+    if (
+        /^>\s*$/.test(
+            value
+        )
+    ) {
+
+        return true;
+    }
+
+    return false;
 }
