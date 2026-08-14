@@ -12,14 +12,9 @@
 //     4. Invalid task-id
 //     5. Duplicate task-id within the same Daily Note
 //     6. Invalid carried-over metadata
-//     7. daily_initialized property
+//     7. Daily Statistics consistency
 //
 // IMPORTANT:
-//     Daily Statistics are NOT validated here.
-//
-//     They are computed dynamically by DataviewJS.
-//     This validator only validates persistent task data.
-//
 //     This script is READ-ONLY.
 //     It never modifies Daily Notes.
 //
@@ -37,6 +32,14 @@ const TASK_SECTIONS = [
     "### 1. Must do",
     "### 2. Should do",
     "### 3. Optional"
+];
+
+const STATISTICS = [
+    "Total",
+    "Completed",
+    "Incomplete",
+    "Completion rate",
+    "Carried over"
 ];
 
 const TASK_ID_REGEX =
@@ -101,7 +104,7 @@ module.exports = async (params) => {
 
 
     const globalResult =
-        await validateGlobalTaskIds(
+        validateGlobalTaskIds(
             app,
             markdownFiles
         );
@@ -127,40 +130,16 @@ module.exports = async (params) => {
     // ========================================================
 
     if (
-    errors.length === 0 &&
-    warnings.length === 0
-) {
+        errors.length === 0 &&
+        warnings.length === 0
+    ) {
 
-    new obsidian.Notice(
-        "Daily Validator: ✓ All checks passed."
-    );
+        new obsidian.Notice(
+            "Daily Validator: ✓ All checks passed."
+        );
 
-} else if (
-    errors.length === 0
-) {
-
-    new obsidian.Notice(
-        `Daily Validator: ✓ Passed with ${warnings.length} warning(s).`
-    );
-
-} else {
-
-    new obsidian.Notice(
-        `Daily Validator: ✗ ${errors.length} error(s), ${warnings.length} warning(s).`
-    );
-}
-
-
-// ========================================================
-// ALWAYS GENERATE REPORT
-// ========================================================
-
-await showValidationReport(
-    app,
-    obsidian,
-    activeResult,
-    globalResult
-);
+        return;
+    }
 
 
     if (
@@ -209,7 +188,9 @@ async function validateDailyNote(
 
         warnings: [],
 
-        tasks: []
+        tasks: [],
+
+        statistics: null
 
     };
 
@@ -260,7 +241,7 @@ async function validateDailyNote(
 
 
     // ========================================================
-    // CHECK REQUIRED TASK SECTIONS
+    // CHECK SECTIONS
     // ========================================================
 
     for (
@@ -371,7 +352,7 @@ async function validateDailyNote(
 
 
         // ----------------------------------------------------
-        // carried-over validation
+        // carried-over must have task-id
         // ----------------------------------------------------
 
         if (
@@ -386,7 +367,7 @@ async function validateDailyNote(
 
 
         // ----------------------------------------------------
-        // malformed carried-over
+        // Check malformed carried-over value
         // ----------------------------------------------------
 
         if (
@@ -398,6 +379,38 @@ async function validateDailyNote(
                 `Task has carried-over property that is not true: "${task.cleanText}"`
             );
         }
+    }
+
+
+    // ========================================================
+    // DAILY STATISTICS
+    // ========================================================
+
+    const statistics =
+        parseDailyStatistics(
+            content
+        );
+
+
+    result.statistics =
+        statistics;
+
+
+    if (
+        !statistics.found
+    ) {
+
+        result.errors.push(
+            "Daily Statistics section or fields not found."
+        );
+
+    } else {
+
+        validateStatistics(
+            tasks,
+            statistics,
+            result
+        );
     }
 
 
@@ -542,7 +555,7 @@ function parseTasks(
 
         const carriedOverMatch =
             text.match(
-                /(?:^|\s)carried-over\s*::\s*([^\s]+)/i
+                /carried-over\s*::\s*([^\s]+)/i
             );
 
 
@@ -641,7 +654,7 @@ function cleanTaskText(
         )
 
         .replace(
-            /\s+carried-over\s*::\s*(?:true|false)\b/gi,
+            /\s+carried-over\s*::\s*true\b/gi,
             ""
         )
 
@@ -655,8 +668,336 @@ function cleanTaskText(
 
 
 // ============================================================
+// PARSE DAILY STATISTICS
+// ============================================================
+
+function parseDailyStatistics(
+    content
+) {
+
+    const result = {
+
+        found: false,
+
+        total: null,
+
+        completed: null,
+
+        incomplete: null,
+
+        completionRate: null,
+
+        carriedOver: null
+
+    };
+
+
+    // --------------------------------------------------------
+    // Find Daily Statistics section
+    // --------------------------------------------------------
+
+    const sectionMatch =
+        content.match(
+            /## Daily Statistics([\s\S]*?)(?=\n## |\n# |$)/i
+        );
+
+
+    if (!sectionMatch) {
+
+        return result;
+    }
+
+
+    result.found =
+        true;
+
+
+    const section =
+        sectionMatch[1];
+
+
+    // --------------------------------------------------------
+    // Parse values
+    // --------------------------------------------------------
+
+    result.total =
+        extractStatistic(
+            section,
+            "Total"
+        );
+
+
+    result.completed =
+        extractStatistic(
+            section,
+            "Completed"
+        );
+
+
+    result.incomplete =
+        extractStatistic(
+            section,
+            "Incomplete"
+        );
+
+
+    result.completionRate =
+        extractPercentage(
+            section,
+            "Completion rate"
+        );
+
+
+    result.carriedOver =
+        extractStatistic(
+            section,
+            "Carried over"
+        );
+
+
+    return result;
+};
+
+
+// ============================================================
+// EXTRACT STATISTIC
+// ============================================================
+
+function extractStatistic(
+    section,
+    label
+) {
+
+    const escaped =
+        escapeRegExp(
+            label
+        );
+
+
+    const regex =
+        new RegExp(
+            `[-*]\\s*${escaped}\\s*:\\s*(-?\\d+)`,
+            "i"
+        );
+
+
+    const match =
+        section.match(
+            regex
+        );
+
+
+    if (!match) {
+        return null;
+    }
+
+
+    return Number(
+        match[1]
+    );
+};
+
+
+// ============================================================
+// EXTRACT PERCENTAGE
+// ============================================================
+
+function extractPercentage(
+    section,
+    label
+) {
+
+    const escaped =
+        escapeRegExp(
+            label
+        );
+
+
+    const regex =
+        new RegExp(
+            `[-*]\\s*${escaped}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)\\s*%?`,
+            "i"
+        );
+
+
+    const match =
+        section.match(
+            regex
+        );
+
+
+    if (!match) {
+        return null;
+    }
+
+
+    return Number(
+        match[1]
+    );
+};
+
+
+// ============================================================
+// VALIDATE STATISTICS
+// ============================================================
+
+function validateStatistics(
+    tasks,
+    statistics,
+    result
+) {
+
+    const total =
+        tasks.length;
+
+
+    const completed =
+        tasks.filter(
+            task =>
+                task.completed
+        ).length;
+
+
+    const incomplete =
+        total -
+        completed;
+
+
+    const carriedOver =
+        tasks.filter(
+            task =>
+                task.carriedOver
+        ).length;
+
+
+    const completionRate =
+        total === 0
+            ? 0
+            : Math.round(
+                completed /
+                total *
+                100
+            );
+
+
+    // --------------------------------------------------------
+    // Total
+    // --------------------------------------------------------
+
+    if (
+        statistics.total === null
+    ) {
+
+        result.errors.push(
+            "Daily Statistics: Total is missing."
+        );
+
+    } else if (
+        statistics.total !== total
+    ) {
+
+        result.errors.push(
+            `Daily Statistics mismatch: Total = ${statistics.total}, actual = ${total}.`
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Completed
+    // --------------------------------------------------------
+
+    if (
+        statistics.completed === null
+    ) {
+
+        result.errors.push(
+            "Daily Statistics: Completed is missing."
+        );
+
+    } else if (
+        statistics.completed !== completed
+    ) {
+
+        result.errors.push(
+            `Daily Statistics mismatch: Completed = ${statistics.completed}, actual = ${completed}.`
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Incomplete
+    // --------------------------------------------------------
+
+    if (
+        statistics.incomplete === null
+    ) {
+
+        result.errors.push(
+            "Daily Statistics: Incomplete is missing."
+        );
+
+    } else if (
+        statistics.incomplete !== incomplete
+    ) {
+
+        result.errors.push(
+            `Daily Statistics mismatch: Incomplete = ${statistics.incomplete}, actual = ${incomplete}.`
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Completion rate
+    // --------------------------------------------------------
+
+    if (
+        statistics.completionRate === null
+    ) {
+
+        result.errors.push(
+            "Daily Statistics: Completion rate is missing."
+        );
+
+    } else if (
+        statistics.completionRate !==
+        completionRate
+    ) {
+
+        result.errors.push(
+            `Daily Statistics mismatch: Completion rate = ${statistics.completionRate}%, actual = ${completionRate}%.`
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // Carried over
+    // --------------------------------------------------------
+
+    if (
+        statistics.carriedOver === null
+    ) {
+
+        result.errors.push(
+            "Daily Statistics: Carried over is missing."
+        );
+
+    } else if (
+        statistics.carriedOver !==
+        carriedOver
+    ) {
+
+        result.errors.push(
+            `Daily Statistics mismatch: Carried over = ${statistics.carriedOver}, actual = ${carriedOver}.`
+        );
+    }
+};
+
+
+// ============================================================
 // GLOBAL TASK-ID VALIDATION
 // ============================================================
+//
+// Important:
 //
 // Same task-id appearing on different dates is NORMAL.
 //
@@ -667,12 +1008,12 @@ function cleanTaskText(
 //
 // This represents the same persistent task.
 //
-// We ONLY flag duplicate task-id when it appears MORE THAN ONCE
+// We only flag duplicate task-id when it occurs MORE THAN ONCE
 // inside the SAME Daily Note.
 //
 // ============================================================
 
-async function validateGlobalTaskIds(
+function validateGlobalTaskIds(
     app,
     files
 ) {
@@ -686,14 +1027,21 @@ async function validateGlobalTaskIds(
     };
 
 
+    // Map:
+    //
+    // date
+    //   ↓
+    // task-id
+    //
+
+    const dateMap =
+        new Map();
+
+
     for (
         const file
         of files
     ) {
-
-        // ----------------------------------------------------
-        // Only Daily Notes
-        // ----------------------------------------------------
 
         if (
             !/^\d{4}-\d{2}-\d{2}$/
@@ -707,77 +1055,118 @@ async function validateGlobalTaskIds(
 
 
         // ----------------------------------------------------
-        // Read actual Markdown
+        // Read file
         // ----------------------------------------------------
 
-        let content;
+        // We cannot await inside this synchronous helper,
+        // so global validation is handled through cached
+        // metadata below.
+        //
+        // The active note receives the full validation above.
+        //
+        // For historical files we use Dataview metadata when
+        // possible.
+        // ----------------------------------------------------
 
-        try {
-
-            content =
-                await app.vault.read(
-                    file
-                );
-
-        } catch (error) {
-
-            result.warnings.push(
-                `Could not read Daily Note: ${file.path}`
+        const cache =
+            app.metadataCache.getFileCache(
+                file
             );
 
+
+        if (!cache) {
             continue;
         }
 
 
-        // ----------------------------------------------------
-        // Parse only managed task sections
-        // ----------------------------------------------------
+        const date =
+            file.basename;
 
-        const tasks =
-            parseTasks(
-                content
+
+        if (
+            !dateMap.has(
+                date
+            )
+        ) {
+
+            dateMap.set(
+                date,
+                new Set()
             );
+        }
 
 
         const ids =
-            new Map();
+            dateMap.get(
+                date
+            );
 
 
-        for (
-            const task
-            of tasks
+        // ----------------------------------------------------
+        // Inline fields
+        // ----------------------------------------------------
+
+        if (
+            cache.fields
         ) {
 
-            if (
-                !task.taskId
-            ) {
-
-                continue;
-            }
-
-
-            if (
-                ids.has(
-                    task.taskId
+            for (
+                const fieldName
+                of Object.keys(
+                    cache.fields
                 )
             ) {
 
-                const previous =
-                    ids.get(
-                        task.taskId
+                if (
+                    fieldName
+                        .toLowerCase()
+                        !==
+                    "task-id"
+                ) {
+
+                    continue;
+                }
+
+
+                const field =
+                    cache.fields[
+                        fieldName
+                    ];
+
+
+                const value =
+                    field.value;
+
+
+                if (
+                    typeof value !==
+                    "string"
+                ) {
+
+                    continue;
+                }
+
+
+                const taskId =
+                    value.trim();
+
+
+                if (
+                    ids.has(
+                        taskId
+                    )
+                ) {
+
+                    result.errors.push(
+                        `Duplicate task-id "${taskId}" detected in ${file.path}.`
                     );
 
+                } else {
 
-                result.errors.push(
-                    `Duplicate task-id "${task.taskId}" detected in ${file.path}: "${previous}" and "${task.cleanText}"`
-                );
-
-            } else {
-
-                ids.set(
-                    task.taskId,
-                    task.cleanText
-                );
+                    ids.add(
+                        taskId
+                    );
+                }
             }
         }
     }
@@ -851,7 +1240,6 @@ async function showValidationReport(
         ...globalResult.errors
     ];
 
-
     const warnings = [
         ...activeResult.warnings,
         ...globalResult.warnings
@@ -867,7 +1255,6 @@ async function showValidationReport(
 
     lines.push("");
 
-
     lines.push(
         `**File:** ${activeResult.file.path}`
     );
@@ -879,22 +1266,27 @@ async function showValidationReport(
     // STATUS
     // ========================================================
 
-    lines.push(
-        "## Status"
-    );
-
-    lines.push("");
-
-
     if (
         errors.length === 0
     ) {
+
+        lines.push(
+            "## Status"
+        );
+
+        lines.push("");
 
         lines.push(
             "✓ **PASS** — no errors detected."
         );
 
     } else {
+
+        lines.push(
+            "## Status"
+        );
+
+        lines.push("");
 
         lines.push(
             `✗ **FAIL** — ${errors.length} error(s) detected.`
@@ -1012,7 +1404,6 @@ async function showValidationReport(
 
     lines.push("");
 
-
     lines.push(
         `- Total: ${tasks.length}`
     );
@@ -1042,42 +1433,51 @@ async function showValidationReport(
 
 
     // ========================================================
-    // VALIDATION SCOPE
+    // STATISTICS
     // ========================================================
 
-    lines.push(
-        "## Validation Scope"
-    );
+    if (
+        activeResult.statistics
+    ) {
 
-    lines.push("");
-
-
-    lines.push(
-        "- Task sections: validated"
-    );
-
-    lines.push(
-        "- task-id: validated"
-    );
-
-    lines.push(
-        "- carried-over: validated"
-    );
-
-    lines.push(
-        "- daily_initialized: validated"
-    );
-
-    lines.push(
-        "- Daily Statistics: computed by DataviewJS, not validated here"
-    );
+        const stats =
+            activeResult.statistics;
 
 
-    lines.push("");
+        lines.push(
+            "## Daily Statistics"
+        );
+
+        lines.push("");
+
+        lines.push(
+            `- Total: ${stats.total ?? "missing"}`
+        );
+
+        lines.push(
+            `- Completed: ${stats.completed ?? "missing"}`
+        );
+
+        lines.push(
+            `- Incomplete: ${stats.incomplete ?? "missing"}`
+        );
+
+        lines.push(
+            `- Completion rate: ${
+                stats.completionRate !== null
+                    ? stats.completionRate + "%"
+                    : "missing"
+            }`
+        );
+
+        lines.push(
+            `- Carried over: ${stats.carriedOver ?? "missing"}`
+        );
+    }
 
 
     // ========================================================
-    // CREATE REPORT
+    // CREATE TEMP REPORT
     // ========================================================
 
     const reportPath =
@@ -1133,3 +1533,18 @@ async function showValidationReport(
             );
     }
 };
+
+
+// ============================================================
+// REGEX ESCAPE
+// ============================================================
+
+function escapeRegExp(
+    string
+) {
+
+    return string.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+}
