@@ -1,4 +1,27 @@
 // ============================================================
+// MORNING TASK
+// ============================================================
+//
+// Workflow:
+//
+// 1. Open today's Daily Note
+// 2. Check initialization
+// 3. Find yesterday's Daily Note
+// 4. Read incomplete tasks from:
+//      - Must do
+//      - Should do
+//      - Optional
+// 5. Preserve task-id when available
+// 6. Generate task-id for legacy tasks without one
+// 7. Prevent duplicates
+// 8. Copy tasks to the same section
+// 9. Add carried-over:: true
+// 10. Mark today's note as initialized
+//
+// ============================================================
+
+
+// ============================================================
 // CONFIG
 // ============================================================
 
@@ -7,6 +30,9 @@ const INITIALIZED_PROPERTY =
 
 const CARRIED_OVER_PROPERTY =
     "carried-over";
+
+const TASK_ID_PROPERTY =
+    "task-id";
 
 const TASK_SECTIONS = [
     {
@@ -29,49 +55,63 @@ const TASK_SECTIONS = [
 // ============================================================
 
 module.exports = async (params) => {
-    const app = params.app;
-    const obsidian = params.obsidian;
 
-    // ============================================================
+    const app =
+        params.app;
+
+    const obsidian =
+        params.obsidian;
+
+
+    // ========================================================
     // GET TODAY'S FILE
-    // ============================================================
+    // ========================================================
 
-   
     const todayFile =
         app.workspace.getActiveFile();
 
     if (!todayFile) {
+
         new obsidian.Notice(
             "No active Daily Note found."
         );
+
         return;
     }
 
-    // ============================================================
-    // CHECK TODAY'S DAILY NOTE
-    // ============================================================
+
+    // ========================================================
+    // READ TODAY
+    // ========================================================
 
     const todayContent =
         await app.vault.read(
             todayFile
         );
 
-    // Make sure this looks like a Daily Note.
+
+    // ========================================================
+    // CHECK DAILY NOTE
+    // ========================================================
+
     if (
         !hasHeading(
             todayContent,
             "## Today's Focus"
         )
     ) {
+
         new obsidian.Notice(
             "This does not appear to be a Daily Note."
         );
+
         return;
     }
 
-    // ============================================================
+
+    // ========================================================
     // INITIALIZATION GUARD
-    // ============================================================
+    // ========================================================
 
     if (
         isInitialized(
@@ -87,9 +127,10 @@ module.exports = async (params) => {
         return;
     }
 
-    // ============================================================
+
+    // ========================================================
     // FIND YESTERDAY
-    // ============================================================
+    // ========================================================
 
     const yesterdayFile =
         await findYesterdayFile(
@@ -106,14 +147,16 @@ module.exports = async (params) => {
         return;
     }
 
+
     const yesterdayContent =
         await app.vault.read(
             yesterdayFile
         );
 
-    // ============================================================
-    // EXTRACT TASKS
-    // ============================================================
+
+    // ========================================================
+    // EXTRACT UNCHECKED TASKS
+    // ========================================================
 
     const yesterdayTasks = {};
 
@@ -131,9 +174,10 @@ module.exports = async (params) => {
             );
     }
 
-    // ============================================================
-    // COUNT TASKS
-    // ============================================================
+
+    // ========================================================
+    // COUNT FOUND TASKS
+    // ========================================================
 
     const totalFound =
         Object.values(
@@ -144,19 +188,25 @@ module.exports = async (params) => {
                 total,
                 tasks
             ) =>
-                total + tasks.length,
+                total +
+                tasks.length,
             0
         );
 
-    // ============================================================
-    // UPDATE TODAY'S NOTE
-    // ============================================================
+
+    // ========================================================
+    // UPDATE TODAY
+    // ========================================================
 
     let newTodayContent =
         todayContent;
 
     let copiedCount = 0;
+
     let duplicateCount = 0;
+
+    let generatedIdCount = 0;
+
 
     for (
         const section
@@ -168,11 +218,17 @@ module.exports = async (params) => {
                 section.heading
             ] || [];
 
+
         if (
             tasks.length === 0
         ) {
             continue;
         }
+
+
+        // ----------------------------------------------------
+        // READ EXISTING TASKS TODAY
+        // ----------------------------------------------------
 
         const existingBody =
             getSectionBody(
@@ -180,36 +236,100 @@ module.exports = async (params) => {
                 section.heading
             );
 
+
         const existingTasks =
             extractAllTasks(
                 existingBody
             );
 
+
+        // ----------------------------------------------------
+        // DUPLICATE INDEX
+        //
+        // We use BOTH:
+        //
+        // 1. task-id
+        // 2. normalized task text
+        //
+        // This keeps the old duplicate protection working.
+        // ----------------------------------------------------
+
+        const existingIds =
+            new Set();
+
         const existingFingerprints =
-            new Set(
-                existingTasks.map(
-                    task =>
-                        normalizeTask(
-                            task.text
-                        )
+            new Set();
+
+
+        for (
+            const task
+            of existingTasks
+        ) {
+
+            const taskId =
+                extractTaskId(
+                    task.text
+                );
+
+
+            if (taskId) {
+
+                existingIds.add(
+                    taskId
+                );
+            }
+
+
+            existingFingerprints.add(
+                normalizeTask(
+                    task.text
                 )
             );
+        }
+
 
         const tasksToAdd = [];
+
+
+        // ----------------------------------------------------
+        // PROCESS YESTERDAY'S TASKS
+        // ----------------------------------------------------
 
         for (
             const task
             of tasks
         ) {
 
-            const fingerprint =
-                normalizeTask(
+            let taskId =
+                extractTaskId(
                     task.text
                 );
 
+
+            // ------------------------------------------------
+            // LEGACY TASK
+            //
+            // If yesterday's task has no task-id,
+            // generate one now.
+            // ------------------------------------------------
+
+            if (!taskId) {
+
+                taskId =
+                    generateTaskId();
+
+                generatedIdCount++;
+            }
+
+
+            // ------------------------------------------------
+            // DUPLICATE BY TASK ID
+            // ------------------------------------------------
+
             if (
-                existingFingerprints
-                    .has(fingerprint)
+                existingIds.has(
+                    taskId
+                )
             ) {
 
                 duplicateCount++;
@@ -217,18 +337,69 @@ module.exports = async (params) => {
                 continue;
             }
 
-            tasksToAdd.push(
-                formatCarriedOverTask(
-                    task
+
+            // ------------------------------------------------
+            // DUPLICATE BY TEXT
+            //
+            // Keeps compatibility with your old system.
+            // ------------------------------------------------
+
+            const fingerprint =
+                normalizeTask(
+                    task.text
+                );
+
+
+            if (
+                existingFingerprints.has(
+                    fingerprint
                 )
+            ) {
+
+                duplicateCount++;
+
+                continue;
+            }
+
+
+            // ------------------------------------------------
+            // CREATE CARRIED-OVER TASK
+            // ------------------------------------------------
+
+            const carriedTask =
+                formatCarriedOverTask(
+                    task,
+                    taskId
+                );
+
+
+            tasksToAdd.push(
+                carriedTask
+            );
+
+
+            // ------------------------------------------------
+            // UPDATE DUPLICATE INDEX
+            // ------------------------------------------------
+
+            existingIds.add(
+                taskId
             );
 
             existingFingerprints.add(
-                fingerprint
+                normalizeTask(
+                    carriedTask
+                )
             );
+
 
             copiedCount++;
         }
+
+
+        // ----------------------------------------------------
+        // NOTHING TO ADD
+        // ----------------------------------------------------
 
         if (
             tasksToAdd.length === 0
@@ -236,11 +407,21 @@ module.exports = async (params) => {
             continue;
         }
 
+
+        // ----------------------------------------------------
+        // APPEND
+        // ----------------------------------------------------
+
         const newBody =
             appendTasks(
                 existingBody,
                 tasksToAdd
             );
+
+
+        // ----------------------------------------------------
+        // REPLACE SECTION
+        // ----------------------------------------------------
 
         newTodayContent =
             replaceSection(
@@ -250,9 +431,10 @@ module.exports = async (params) => {
             );
     }
 
-    // ============================================================
+
+    // ========================================================
     // MARK INITIALIZED
-    // ============================================================
+    // ========================================================
 
     newTodayContent =
         setInitialized(
@@ -260,18 +442,20 @@ module.exports = async (params) => {
             INITIALIZED_PROPERTY
         );
 
-    // ============================================================
+
+    // ========================================================
     // SAVE
-    // ============================================================
+    // ========================================================
 
     await app.vault.modify(
         todayFile,
         newTodayContent
     );
 
-    // ============================================================
-    // NOTICE
-    // ============================================================
+
+    // ========================================================
+    // NOTICES
+    // ========================================================
 
     if (
         totalFound === 0
@@ -283,6 +467,7 @@ module.exports = async (params) => {
 
         return;
     }
+
 
     if (
         copiedCount === 0 &&
@@ -296,20 +481,38 @@ module.exports = async (params) => {
         return;
     }
 
+
+    let notice =
+        `Morning initialization complete. ${copiedCount} task(s) carried over.`;
+
+
+    if (
+        duplicateCount > 0
+    ) {
+
+        notice +=
+            ` ${duplicateCount} duplicate(s) skipped.`;
+    }
+
+
+    if (
+        generatedIdCount > 0
+    ) {
+
+        notice +=
+            ` ${generatedIdCount} new task-id(s) generated.`;
+    }
+
+
     new obsidian.Notice(
-        `Morning initialization complete. ${copiedCount} task(s) carried over.` +
-        (
-            duplicateCount > 0
-                ? ` ${duplicateCount} duplicate(s) skipped.`
-                : ""
-        )
+        notice
     );
 };
 
 
-// =================================================================
+// ============================================================
 // FIND YESTERDAY'S DAILY NOTE
-// =================================================================
+// ============================================================
 
 async function findYesterdayFile(
     app,
@@ -321,31 +524,36 @@ async function findYesterdayFile(
             todayFile.basename
         );
 
+
     if (!todayDate) {
         return null;
     }
+
 
     const yesterday =
         new Date(
             todayDate
         );
 
+
     yesterday.setDate(
         yesterday.getDate() - 1
     );
+
 
     const yesterdayName =
         formatDate(
             yesterday
         );
 
-    /*
-     * First try the same folder.
-     *
-     * This supports:
-     *
-     * Daily/YYYY/MM/YYYY-MM-DD.md
-     */
+
+    // --------------------------------------------------------
+    // FIRST: SAME FOLDER
+    //
+    // Supports:
+    //
+    // Daily/YYYY/MM/YYYY-MM-DD.md
+    // --------------------------------------------------------
 
     const sameFolderPath =
         todayFile.parent.path === "."
@@ -355,10 +563,12 @@ async function findYesterdayFile(
               yesterdayName +
               ".md";
 
+
     const sameFolderFile =
         app.vault.getAbstractFileByPath(
             sameFolderPath
         );
+
 
     if (
         sameFolderFile &&
@@ -368,12 +578,10 @@ async function findYesterdayFile(
         return sameFolderFile;
     }
 
-    /*
-     * Fallback:
-     *
-     * Search the entire vault for a file
-     * with yesterday's date as basename.
-     */
+
+    // --------------------------------------------------------
+    // FALLBACK: SEARCH VAULT
+    // --------------------------------------------------------
 
     const matches =
         app.vault
@@ -384,28 +592,26 @@ async function findYesterdayFile(
                     yesterdayName
             );
 
+
     if (
         matches.length === 0
     ) {
+
         return null;
     }
 
-    /*
-     * If there is exactly one match,
-     * use it.
-     */
 
     if (
         matches.length === 1
     ) {
+
         return matches[0];
     }
 
-    /*
-     * If multiple files exist with the same
-     * basename, prefer the one whose folder
-     * is closest to today's folder.
-     */
+
+    // --------------------------------------------------------
+    // PREFER SAME PARENT
+    // --------------------------------------------------------
 
     const sameParent =
         matches.find(
@@ -414,6 +620,7 @@ async function findYesterdayFile(
                 todayFile.parent.path
         );
 
+
     return (
         sameParent ||
         matches[0]
@@ -421,9 +628,9 @@ async function findYesterdayFile(
 }
 
 
-// =================================================================
+// ============================================================
 // PARSE DATE
-// =================================================================
+// ============================================================
 
 function parseDateFromFilename(
     filename
@@ -434,9 +641,11 @@ function parseDateFromFilename(
             /^(\d{4})-(\d{2})-(\d{2})$/
         );
 
+
     if (!match) {
         return null;
     }
+
 
     const year =
         Number(match[1]);
@@ -447,6 +656,7 @@ function parseDateFromFilename(
     const day =
         Number(match[3]);
 
+
     return new Date(
         year,
         month,
@@ -455,9 +665,9 @@ function parseDateFromFilename(
 }
 
 
-// =================================================================
+// ============================================================
 // FORMAT DATE
-// =================================================================
+// ============================================================
 
 function formatDate(
     date
@@ -465,6 +675,7 @@ function formatDate(
 
     const year =
         date.getFullYear();
+
 
     const month =
         String(
@@ -475,6 +686,7 @@ function formatDate(
             "0"
         );
 
+
     const day =
         String(
             date.getDate()
@@ -484,31 +696,27 @@ function formatDate(
             "0"
         );
 
+
     return (
         `${year}-${month}-${day}`
     );
 }
 
 
-// =================================================================
+// ============================================================
 // CHECK INITIALIZATION
-// =================================================================
+// ============================================================
 
 function isInitialized(
     content,
     property
 ) {
 
-    /*
-     * Supports either:
-     *
-     * daily_initialized: true
-     *
-     * or:
-     *
-     * daily_initialized:: true
-     *
-     */
+    // --------------------------------------------------------
+    // YAML
+    //
+    // daily_initialized: true
+    // --------------------------------------------------------
 
     const yamlPattern =
         new RegExp(
@@ -516,32 +724,43 @@ function isInitialized(
             "mi"
         );
 
+
+    // --------------------------------------------------------
+    // INLINE
+    //
+    // daily_initialized:: true
+    // --------------------------------------------------------
+
     const inlinePattern =
         new RegExp(
             `${escapeRegExp(property)}\\s*::\\s*true`,
             "i"
         );
 
+
     return (
-        yamlPattern.test(content) ||
-        inlinePattern.test(content)
+        yamlPattern.test(
+            content
+        ) ||
+        inlinePattern.test(
+            content
+        )
     );
 }
 
 
-// =================================================================
+// ============================================================
 // SET INITIALIZATION
-// =================================================================
+// ============================================================
 
 function setInitialized(
     content,
     property
 ) {
 
-    /*
-     * If the property already exists,
-     * update it instead of adding another one.
-     */
+    // --------------------------------------------------------
+    // EXISTING YAML PROPERTY
+    // --------------------------------------------------------
 
     const yamlPattern =
         new RegExp(
@@ -549,8 +768,11 @@ function setInitialized(
             "mi"
         );
 
+
     if (
-        yamlPattern.test(content)
+        yamlPattern.test(
+            content
+        )
     ) {
 
         return content.replace(
@@ -559,10 +781,10 @@ function setInitialized(
         );
     }
 
-    /*
-     * Prefer YAML frontmatter because
-     * your Daily Note already has frontmatter.
-     */
+
+    // --------------------------------------------------------
+    // INSERT INTO EXISTING FRONTMATTER
+    // --------------------------------------------------------
 
     if (
         content.startsWith("---")
@@ -574,6 +796,7 @@ function setInitialized(
                 3
             );
 
+
         if (
             closingIndex !== -1
         ) {
@@ -581,12 +804,15 @@ function setInitialized(
             const insertPosition =
                 closingIndex;
 
+
             return (
                 content.slice(
                     0,
                     insertPosition
                 ) +
+
                 `\n${property}: true` +
+
                 content.slice(
                     insertPosition
                 )
@@ -594,9 +820,10 @@ function setInitialized(
         }
     }
 
-    /*
-     * Fallback if no frontmatter exists.
-     */
+
+    // --------------------------------------------------------
+    // FALLBACK
+    // --------------------------------------------------------
 
     return (
         `---\n${property}: true\n---\n\n` +
@@ -605,9 +832,9 @@ function setInitialized(
 }
 
 
-// =================================================================
+// ============================================================
 // EXTRACT UNCHECKED TASKS
-// =================================================================
+// ============================================================
 
 function extractUncheckedTasks(
     content,
@@ -620,55 +847,59 @@ function extractUncheckedTasks(
             heading
         );
 
+
     if (!body) {
         return [];
     }
 
+
     const lines =
-        body.split(/\r?\n/);
+        body.split(
+            /\r?\n/
+        );
+
 
     const tasks = [];
+
 
     for (
         const line
         of lines
     ) {
 
-        /*
-         * Only accept standard Markdown
-         * task syntax:
-         *
-         * - [ ] Task
-         */
-
         const match =
             line.match(
                 /^\s*[-*]\s*\[\s*\]\s+(.+?)\s*$/
             );
 
+
         if (!match) {
             continue;
         }
 
+
         const text =
             match[1].trim();
+
 
         if (!text) {
             continue;
         }
 
+
         tasks.push({
-            text: text
+            text
         });
     }
+
 
     return tasks;
 }
 
 
-// =================================================================
+// ============================================================
 // EXTRACT ALL TASKS
-// =================================================================
+// ============================================================
 
 function extractAllTasks(
     body
@@ -678,10 +909,15 @@ function extractAllTasks(
         return [];
     }
 
+
     const lines =
-        body.split(/\r?\n/);
+        body.split(
+            /\r?\n/
+        );
+
 
     const tasks = [];
+
 
     for (
         const line
@@ -693,23 +929,120 @@ function extractAllTasks(
                 /^\s*[-*]\s*\[([ xX])\]\s+(.+?)\s*$/
             );
 
+
         if (!match) {
             continue;
         }
 
+
         tasks.push({
-            state: match[1],
-            text: match[2].trim()
+
+            state:
+                match[1],
+
+            text:
+                match[2].trim()
+
         });
     }
+
 
     return tasks;
 }
 
 
-// =================================================================
+// ============================================================
+// EXTRACT TASK ID
+// ============================================================
+//
+// Recognizes:
+//
+// task-id:: task-a83f29
+//
+// ============================================================
+
+function extractTaskId(
+    text
+) {
+
+    if (!text) {
+        return null;
+    }
+
+
+    const match =
+        text.match(
+            /(?:^|\s)task-id\s*::\s*([A-Za-z0-9_-]+)/i
+        );
+
+
+    if (!match) {
+        return null;
+    }
+
+
+    return match[1];
+}
+
+
+// ============================================================
+// GENERATE TASK ID
+// ============================================================
+//
+// Format:
+//
+// task-xxxxxx
+//
+// Uses crypto.randomUUID when available.
+// Falls back to timestamp + random string.
+//
+// ============================================================
+
+function generateTaskId() {
+
+    if (
+        typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
+    ) {
+
+        return (
+            "task-" +
+            crypto
+                .randomUUID()
+                .replace(
+                    /-/g,
+                    ""
+                )
+                .slice(
+                    0,
+                    8
+                )
+        );
+    }
+
+
+    return (
+        "task-" +
+        Date.now()
+            .toString(
+                36
+            ) +
+        "-" +
+        Math.random()
+            .toString(
+                36
+            )
+            .slice(
+                2,
+                7
+            )
+    );
+}
+
+
+// ============================================================
 // NORMALIZE TASK
-// =================================================================
+// ============================================================
 
 function normalizeTask(
     text
@@ -719,53 +1052,88 @@ function normalizeTask(
         return "";
     }
 
+
     return text
 
-        // Remove carried-over metadata
+        // ----------------------------------------------------
+        // Remove carried-over
+        // ----------------------------------------------------
+
         .replace(
             /\s+carried-over\s*::\s*true\b/gi,
             ""
         )
 
-        // Remove duplicate spaces
+        // ----------------------------------------------------
+        // Remove task-id
+        // ----------------------------------------------------
+
+        .replace(
+            /\s+task-id\s*::\s*[A-Za-z0-9_-]+\b/gi,
+            ""
+        )
+
+        // ----------------------------------------------------
+        // Normalize whitespace
+        // ----------------------------------------------------
+
         .replace(
             /\s+/g,
             " "
         )
 
-        // Remove surrounding whitespace
+        // ----------------------------------------------------
+        // Trim
+        // ----------------------------------------------------
+
         .trim()
 
-        // Case-insensitive comparison
+        // ----------------------------------------------------
+        // Case-insensitive
+        // ----------------------------------------------------
+
         .toLowerCase();
 }
 
 
-// =================================================================
+// ============================================================
 // FORMAT CARRIED-OVER TASK
-// =================================================================
+// ============================================================
 
 function formatCarriedOverTask(
-    task
+    task,
+    taskId
 ) {
 
     const cleanText =
         task.text
+
+            // Remove old carried-over
             .replace(
                 /\s+carried-over\s*::\s*true\b/gi,
                 ""
             )
+
+            // Remove old task-id
+            .replace(
+                /\s+task-id\s*::\s*[A-Za-z0-9_-]+\b/gi,
+                ""
+            )
+
             .trim();
 
+
     return (
-        `- [ ] ${cleanText} ${CARRIED_OVER_PROPERTY}:: true`
+        `- [ ] ${cleanText} ` +
+        `${TASK_ID_PROPERTY}:: ${taskId} ` +
+        `${CARRIED_OVER_PROPERTY}:: true`
     );
 }
 
 
-// =================================================================
+// ============================================================
 // APPEND TASKS
-// =================================================================
+// ============================================================
 
 function appendTasks(
     existingBody,
@@ -779,24 +1147,30 @@ function appendTasks(
                 ""
             );
 
+
     if (
         !cleanBody.trim()
     ) {
 
-        return tasks.join("\n");
+        return tasks.join(
+            "\n"
+        );
     }
+
 
     return (
         cleanBody +
         "\n" +
-        tasks.join("\n")
+        tasks.join(
+            "\n"
+        )
     );
 }
 
 
-// =================================================================
+// ============================================================
 // GET SECTION BODY
-// =================================================================
+// ============================================================
 
 function getSectionBody(
     content,
@@ -804,7 +1178,10 @@ function getSectionBody(
 ) {
 
     const lines =
-        content.split(/\r?\n/);
+        content.split(
+            /\r?\n/
+        );
+
 
     const start =
         lines.findIndex(
@@ -812,6 +1189,7 @@ function getSectionBody(
                 line.trim() ===
                 heading.trim()
         );
+
 
     if (
         start === -1
@@ -820,19 +1198,16 @@ function getSectionBody(
         return "";
     }
 
+
     let end =
         lines.length;
+
 
     for (
         let i = start + 1;
         i < lines.length;
         i++
     ) {
-
-        /*
-         * Any heading of the same or higher level
-         * ends the section.
-         */
 
         if (
             /^#{1,6}\s/.test(
@@ -846,18 +1221,21 @@ function getSectionBody(
         }
     }
 
+
     return lines
         .slice(
             start + 1,
             end
         )
-        .join("\n");
+        .join(
+            "\n"
+        );
 }
 
 
-// =================================================================
+// ============================================================
 // REPLACE SECTION
-// =================================================================
+// ============================================================
 
 function replaceSection(
     content,
@@ -866,7 +1244,10 @@ function replaceSection(
 ) {
 
     const lines =
-        content.split(/\r?\n/);
+        content.split(
+            /\r?\n/
+        );
+
 
     const start =
         lines.findIndex(
@@ -875,6 +1256,7 @@ function replaceSection(
                 heading.trim()
         );
 
+
     if (
         start === -1
     ) {
@@ -882,8 +1264,10 @@ function replaceSection(
         return content;
     }
 
+
     let end =
         lines.length;
+
 
     for (
         let i = start + 1;
@@ -903,21 +1287,19 @@ function replaceSection(
         }
     }
 
+
     const before =
         lines.slice(
             0,
             start + 1
         );
 
+
     const after =
         lines.slice(
             end
         );
 
-    /*
-     * Preserve a blank line between
-     * heading and content.
-     */
 
     return [
         ...before,
@@ -925,13 +1307,15 @@ function replaceSection(
         newBody.trim(),
         "",
         ...after
-    ].join("\n");
+    ].join(
+        "\n"
+    );
 }
 
 
-// =================================================================
+// ============================================================
 // HAS HEADING
-// =================================================================
+// ============================================================
 
 function hasHeading(
     content,
@@ -939,7 +1323,10 @@ function hasHeading(
 ) {
 
     const lines =
-        content.split(/\r?\n/);
+        content.split(
+            /\r?\n/
+        );
+
 
     return lines.some(
         line =>
@@ -949,9 +1336,9 @@ function hasHeading(
 }
 
 
-// =================================================================
+// ============================================================
 // ESCAPE REGEX
-// =================================================================
+// ============================================================
 
 function escapeRegExp(
     string
